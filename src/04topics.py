@@ -1,3 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+"""
+Script that builds a topic model of Speculum's
+archive and visualizes the results, both using
+word clouds and diachronically. The topic model
+used in non-negative matrix factorization.
+"""
+
 import glob
 import os
 from operator import itemgetter
@@ -13,25 +24,7 @@ import pandas as pd
 from wordcloud import WordCloud
 from scipy.interpolate import spline
 
-
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-
-from bokeh.models import HoverTool, ColumnDataSource
-from bokeh.plotting import figure, show, output_file, save
-from bokeh.charts import Bar
-from bokeh.io import output_file, show, vplot, save
-from bokeh.plotting import figure
-from bokeh.models import Axis
-from bokeh.models.ranges import FactorRange
-from bokeh.charts.attributes import ColorAttr, CatAttr
-from bokeh.layouts import column
-
-from supersmoother import SuperSmoother
-
-import logging, gensim
-from gensim import corpora, models
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
 
 IGNORE = set('IN DT -LRB- -RRB-'.split())
@@ -39,19 +32,21 @@ IGNORE = set('IN DT -LRB- -RRB-'.split())
 stopwords = set(l.strip() for l in open('en_stopwords.txt', 'r'))
 
 
-n_features = 5000 #5000
-n_topics = 250 #100
+n_features = 5000
+n_topics = 250
 n_top_words = 60
-sample_len = 500 #50
+sample_len = 500
+
 
 def top_words(model, feature_names, n_top_words):
-    FONT_PATH = os.environ.get("FONT_PATH", os.path.join(os.path.dirname(__file__),
-                                                     "Arial.ttf"))
+    FONT_PATH = os.environ.get('FONT_PATH',
+                               os.path.join(os.path.dirname(__file__),
+                               'Arial.ttf'))
     try:
-        shutil.rmtree('clouds')
+        shutil.rmtree('../figures/clouds')
     except:
         pass
-    os.mkdir('clouds')
+    os.mkdir('../figures/clouds')
 
     info = []
     for topic_idx, topic in enumerate(model.components_):
@@ -62,16 +57,21 @@ def top_words(model, feature_names, n_top_words):
 
         weights = [topic[i] for i in topic.argsort()[:-n_top_words-1:-1]]
         try:
-            freqs = {wo:we for wo, we in zip(words, weights)}
-            wordcloud = WordCloud(normalize_plurals=False, font_path=FONT_PATH, background_color='white', colormap='inferno_r')
+            freqs = {wo: we for wo, we in zip(words, weights)}
+            wordcloud = WordCloud(normalize_plurals=False,
+                                  font_path=FONT_PATH,
+                                  background_color='white',
+                                  colormap='inferno_r',
+                                  width=800,
+                                  height=400)
             wordcloud = wordcloud.generate_from_frequencies(freqs)
-            sb.plt.imsave('clouds/'+str(topic_idx) + '.pdf', wordcloud)
+            sb.plt.imsave('../figures/clouds/'+str(topic_idx) + '.tiff',
+                          wordcloud, dpi=1000)
             sb.plt.axis("off")
         except:
             continue
-        
-    return info
 
+    return info
 
 
 class SpeculumSentences(object):
@@ -82,7 +82,7 @@ class SpeculumSentences(object):
 
         if max_nb_files:
             self.fns = self.fns[:self.max_nb_files]
- 
+
     def __iter__(self):
         self.publ_years = []
 
@@ -147,7 +147,6 @@ df = pd.DataFrame(X, columns=topic_names)
 df['year'] = [int(y) for y in years]
 df_year = df.groupby(['year']).mean()
 
-output_file("../figures/topics.html")
 plots = []
 
 years = list(range(min(df['year']), max(df['year']) + 1))
@@ -155,21 +154,17 @@ years = list(range(min(df['year']), max(df['year']) + 1))
 info = top_words(nmf, tfidf_feature_names, n_top_words)
 
 try:
-    shutil.rmtree('topics')
+    shutil.rmtree('../figures/topics')
 except:
     pass
-os.mkdir('topics')
+os.mkdir('../figures/topics')
 
 for i, topic in enumerate(topic_names):
     scores = np.nan_to_num(df_year.as_matrix()[:, i])
 
     if np.sum(scores):
-        s = info[i][:80]
-        p = figure(title=topic + ': ' + s, plot_width=1200, plot_height=400)
-        p.title.text_font_size = '12pt'
-        p.line(df_year.index, scores, line_width=2)
-        plots.append(p)
-        
+        s = info[i][:60]+'[...]'
+
         x_smooth = np.linspace(min(years), max(years), 200)
         y_smooth = spline(years, scores, x_smooth)
 
@@ -177,14 +172,9 @@ for i, topic in enumerate(topic_names):
         sb.plt.scatter(years, scores, alpha=0.3)
         sb.plt.plot(x_smooth, y_smooth)
 
-        plt.title('Average diachronic proportion ' + topic + ':\n' + s)
+        plt.title('Average diachronic proportion of ' + topic + ':\n' + s)
         plt.xlabel('Year')
         plt.ylabel('Topic proportion')
         axes = plt.gca()
-        #axes.set_ylim([0,0.004])
-        sb.plt.savefig('topics/' + topic + '.pdf')
-
-
-p = column(*plots)
-save(p)
-
+        axes.set_ylim([0, 0.015])
+        sb.plt.savefig('../figures/topics/' + topic + '.pdf')

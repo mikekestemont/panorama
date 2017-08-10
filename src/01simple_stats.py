@@ -1,11 +1,19 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Script to plot the absolute number of word tokens in the
+Speculum archive (aggregated per year), as tagged by the
+Stanford Core NLP Suite.
+"""
+
 import glob
 import os
 from operator import itemgetter
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
-sb.set()
-
+import numpy as np
 
 year_counter = {}
 for filename in sorted(glob.glob('../data/tagged/*.txt.conll')):
@@ -27,9 +35,10 @@ years = [int(y) for y in years]
 nb_words = sum(cnts)
 
 sb.plt.barh(years, cnts, color='lightslategray')
-sb.plt.title('Speculum archive (' + str(min(years)) + \
-                '-' +  str(max(years)) + ')\n'\
-                +str(nb_words)+' tokens  in total')
-sb.plt.xlabel('Number of words')
+sb.plt.title('Speculum archive (' + str(min(years)) +
+             '-' + str(max(years)) + ')\n'
+             + str(nb_words)+' tokens in total (yearly mean: ' +
+             str(int(np.mean(cnts))) + ')')
+sb.plt.xlabel('Number of tokens')
 sb.plt.ylabel('Year')
-sb.plt.savefig('../figures/nb_words.pdf')
+sb.plt.savefig('../figures/01nb_words.pdf')

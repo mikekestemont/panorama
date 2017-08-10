@@ -1,3 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+"""
+Script to find out which words in Speculum,
+according to Kendall's tau test, have shown
+the steadiest increase/decrease in frequency
+over the years.
+"""
+
 import glob
 import os
 from operator import itemgetter
@@ -66,32 +77,34 @@ df.columns = vocab
 df.index = sorted(counters.keys())
 scores = []
 
-ranks = range(1,len(df.index)+1)
+ranks = range(1, len(df.index)+1)
+
+years = [int(y) for y in counters.keys()]
+years = list(range(min(years), max(years) + 1))
+
 for feat in df.columns:
     tau, p = kendalltau(ranks, df[feat].tolist())
     scores.append((feat, tau))
 scores.sort(key=itemgetter(1))
 nb = 5
 top, bottom = scores[:nb], scores[-nb:]
+
 fig = sb.plt.figure()
 sb.set_style("darkgrid")
 for (feat, tau), col in zip(top, sb.color_palette("Set1")[:nb]):
-    sb.plt.plot(ranks, df[feat].tolist(), label=feat, c=col)
+    sb.plt.plot(years, df[feat].tolist(), label=feat, c=col)
 sb.plt.legend(loc="best")
-sb.plt.xlabel('Diachrony', fontsize=10)
-sb.plt.ylabel('Frequency', fontsize=10)
-sb.plt.savefig('../figures/top_tau.pdf')
+sb.plt.xlabel('Year', fontsize=10)
+sb.plt.ylabel('Frequency (relative)', fontsize=10)
+sb.plt.title('The 5 nouns with the steadiest frequency decrease in Speculum')
+sb.plt.savefig('../figures/03top_tau.pdf')
+
 fig = sb.plt.figure()
 sb.set_style("darkgrid")
-
 for (feat, tau), col in zip(bottom, sb.color_palette("Set1")[:nb]):
-    sb.plt.plot(ranks, df[feat].tolist(), label=feat, c=col)
+    sb.plt.plot(years, df[feat].tolist(), label=feat, c=col)
 sb.plt.legend(loc="best")
-sb.plt.xlabel('Diachrony', fontsize=10)
-sb.plt.ylabel('Frequency', fontsize=10)
-sb.plt.savefig('../figures/bottom_tau.pdf')
-
-
-
-
-
+sb.plt.xlabel('Year', fontsize=10)
+sb.plt.ylabel('Frequency (relative)', fontsize=10)
+sb.plt.title('The 5 nouns with the steadiest frequency increase in Speculum')
+sb.plt.savefig('../figures/04bottom_tau.pdf')
